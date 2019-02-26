@@ -2,3 +2,4 @@ Welcome to Mars
 It's hot
 It's red
 There's a movie
+Venus as a base
