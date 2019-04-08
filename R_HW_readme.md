@@ -1,8 +1,10 @@
 READ ME
 
-R_HW contains a summary of budget and energy and climate spending by different departments through time.
+This repository contains a R markdown file with the code and output of the assignment and an HTML file of just the results and write up.
 
 Packages needed: tidyverse
+
+R_HW2 contains a summary of budget and energy and climate spending by different departments through time.
 
 First three plots are summary plots of each respective CSV file: energy spending, climate spending, and budget of various departments.
 
