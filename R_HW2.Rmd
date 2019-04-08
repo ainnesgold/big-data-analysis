@@ -1,0 +1,150 @@
+---
+title: "R_HW2"
+author: "Annie Innes-Gold"
+date: "4/3/2019"
+output: html_document
+---
+First I read in the three CSV files. 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+Climate<-read.csv("climate_spending.csv")
+Energy<-read.csv("energy_spending.csv")
+Federal<-read.csv("fed_r_d_spending.csv")
+```
+
+
+Then I created a summary plot for energy spending over time, organized by department. I found that the Department of Atomic Energy Defense and the Office of Science R & D consistently have the highest budget, while the others are grouped closer together, with Fusion Energy Sciences and Bio and Env Sciences most recently being at the bottom (Figure 1). 
+
+```{r Energy, echo=FALSE}
+
+ordered_legend<-filter(Energy, year==max(year)) %>% #get data from recent year
+  arrange(desc(energy_spending)) %>%
+  pull(department)
+
+ggplot(Energy, aes(year, energy_spending, col=department))+
+  geom_point() + geom_line() +
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"), 
+        plot.title = element_text(hjust = 0.5))+
+  scale_color_viridis_d(breaks=ordered_legend)+
+  labs(y="Energy Spending", x="Year", col="Department", caption = "Fig 1. Energy Spending of Different Departments Over Time")
+  
+```
+
+My next plot looked at GCC Spending over time organized by department. I found that NASA consistently spent the most, while the departments of Agricuture, Interior, and others were on the lower end (Figure 2). 
+
+```{r Climate, echo=FALSE}
+ordered_legend2<-filter(Climate, year==max(year)) %>% #get data from recent year
+  arrange(desc(gcc_spending)) %>%
+  pull(department)
+
+ggplot(Climate, aes(year, gcc_spending, col=department))+
+  geom_point() + geom_line()+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"), 
+        plot.title = element_text(hjust = 0.5))+
+  scale_color_viridis_d(breaks=ordered_legend2)+
+  labs(y="GCC Spending", x="Year", col="Department", caption = "Fig 2. GCC Spending of Different Departments Over Time")
+
+```
+
+I then looked at budget over time by department. The DOD had the highest budget throughout all the years, followed by the HHS and NIH. The EPA was on the bottom (Figure 3). 
+
+
+```{r Budget, echo=FALSE}
+ordered_legend3<-filter(Federal, year==max(year)) %>% #get data from recent year
+  arrange(desc(rd_budget)) %>%
+  pull(department)
+
+ggplot(Federal, aes(year, rd_budget, col=department))+
+  geom_point() + geom_line() +
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"), 
+        plot.title = element_text(hjust = 0.5))+
+  scale_color_viridis_d(breaks=ordered_legend3)+
+  labs(y="Budget", x="Year", col = "Department", caption = "Fig 3. Budget of Different Departments Over Time")
+```
+
+
+I decided to focus on the NSF. I wanted to see if there was a relationship between NSF Budget and NSF GCC Spending over time. I first summarized the NSF Budget over time, and their GCC Spending, and combined these two data sheets into one. I then wrote a function in order to create a plot that would display the adjusted R2 value and the P-value. I found a strong positive correlation between NSF Budget and NSF GCC Spending (Figure 4). NSF Budget accounted for 72% of the variation in NSF GCC Spending (Figure 4). 
+
+```{r NSF, echo=FALSE, include=FALSE}
+NSFSum<-Federal %>%
+  group_by(year) %>%
+  filter(department=="NSF") %>%
+  summarise(rd_budget)
+
+NSFClimate<-Climate %>%
+  group_by(year) %>%
+  filter(department=="NSF") %>%
+  summarise(gcc_spending)
+NSFSum<-inner_join(NSFSum, NSFClimate)
+```
+
+
+```{r NSF2, echo=FALSE}
+ggplotRegression <- function (fit) {
+  
+  require(ggplot2)
+  
+  ggplot(fit$model, aes_string(x = names(fit$model)[2], y = names(fit$model)[1])) + 
+    geom_point() +
+    theme_bw()+
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_blank(), axis.line = element_line(colour = "black"), 
+          plot.title = element_text(hjust = 0.5))+
+    stat_smooth(method = "lm", col = "red") +
+    labs(title = paste("Adj R2 = ",signif(summary(fit)$adj.r.squared, 5),
+                       " P =",signif(summary(fit)$coef[2,4], 5)), x="NSF Budget", y="NSF GCC Spending",
+         caption = "Fig 4. NSF GCC Spending as a Function of NSF Budget")
+}
+
+fit1 <- lm(gcc_spending ~ rd_budget, data = NSFSum)
+#summary(fit1)
+
+ggplotRegression(fit1)
+
+```
+
+
+I then looked to see if there was a relationship between NSF budget and energy spending of Biological and Environmental Research, since the NSF funds a lot of this type of work. I filtered the Energy dataset to only look at Bio and Env Research, and then joined it to my NSF summary dataset. I found that there was no relationship between NSF budget and Bio and Env Research energy spending (Figure 5). NSF Budget only accounted for 5.9% of the variation of energy spending, and the P-value was insignificant. 
+
+```{r Bio, include=FALSE}
+Bio<-Energy %>%
+  group_by(year) %>%
+  filter(department=="Bio and Env Research*") %>%
+  summarize(energy_spending)
+
+BioNSF<-inner_join(NSFSum, Bio)
+```
+
+
+```{r Bio2, echo=FALSE}
+ggplotRegression2 <- function (fit) {
+  
+  require(ggplot2)
+  
+  ggplot(fit$model, aes_string(x = names(fit$model)[2], y = names(fit$model)[1])) + 
+    geom_point() +
+    theme_bw()+
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_blank(), axis.line = element_line(colour = "black"), 
+          plot.title = element_text(hjust = 0.5))+
+    stat_smooth(method = "lm", col = "red") +
+    labs(title = paste("Adj R2 = ",signif(summary(fit)$adj.r.squared, 5),
+                       " P =",signif(summary(fit)$coef[2,4], 5)), x="NSF Budget", y="Energy Spending of Bio and Env Sciences",
+         caption = "Fig 5. Bio and Env Sciences Energy Spending as a Function of NSF Budget")
+}
+
+
+fit2 <- lm(energy_spending ~ rd_budget, data = BioNSF)
+#summary(fit2)
+ggplotRegression2(fit2)
+```
